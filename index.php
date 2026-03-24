@@ -10,9 +10,13 @@
   * @file $Id: index.php 1 Montag, 9. Februar 2026, 09:57:50 GMT+0200Z ztatement $
   *
   * @link https://github.com/ztatement/taskmanager
-  * @package TaskManager
   *
   * @license MIT
+  *
+  * @category Hauptseite
+  * @package TaskManager
+  *
+  * @description Hauptseite für TaskManager
   */
 
   declare(strict_types=1);
