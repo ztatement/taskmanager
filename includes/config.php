@@ -28,16 +28,16 @@
 
   // Laufzeit für "Angemeldet bleiben" in Sekunden (30 Tage)
   define( 'SESSION_REMEMBER_DURATION', 2592000 );
-
+ 
   // Pfad zur SQLite-Datenbankdatei
-  define( 'DB_FILE_PATH', __DIR__ . '/db/' );
+  define( 'DB_FILE_PATH', __DIR__ . 'db/' );
   define( 'DB_FILE', DB_FILE_PATH . 'tasks.sqlite' );
-  define( 'DB_FILE_USER_PATH', __DIR__ . '/db/users/' );
+  define( 'DB_FILE_USER_PATH', DB_FILE_PATH. 'users/' );
 
   // Pfad zu den Backups
-  define( 'BACKUP_DIR', './includes/db/backups/' );
-  define( 'BACKUP_DIR_USERS', './includes/db/backups/users/' );
-  
+  define( 'BACKUP_DIR', DB_FILE_PATH . 'backups/' );
+  define( 'BACKUP_DIR_USERS', BACKUP_DIR . 'users/' );
+   
   // Template Pfad
   define( 'TEMPLATE_PATH', './includes/templates/' );
   // Admin Templates
@@ -56,10 +56,10 @@
   define( 'DEBUG_MODE', DEBUG_MODE_DEFAULT );
 
   // Loglevel
-  define( 'LOG_LEVEL', 'DEBUG' );
+  define( 'LOG_LEVEL', 'WARNING' );
 
   // Logfile
-  define( 'LOG_DIR', './logs/' );
+  define( 'LOG_DIR', './.logs/' );
   define( 'LOG_PATH', LOG_DIR );
   define( 'LOG_FILE', LOG_DIR . 'debug.log' );
   define( 'LOG_FILE_ERROR', LOG_DIR . 'errors.log' );
