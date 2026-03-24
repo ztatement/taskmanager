@@ -68,7 +68,15 @@
   if (!empty($healthIssues))
   {
     http_response_code(503);
-    die('<div style="font-family:sans-serif; color:#721c24; background-color:#f8d7da; border:1px solid #f5c6cb; padding:20px; margin:20px; border-radius:5px;"><strong>Kritischer Systemfehler:</strong><br><ul style="margin-bottom:0;"><li>' . implode('</li><li>', $healthIssues) . '</li></ul></div>');
+    die
+    ('
+      <div style="font-family:sans-serif; color:#721c24; background-color:#f8d7da; border:1px solid #f5c6cb; padding:20px; margin:20px; border-radius:5px;">
+        <strong>Kritischer Systemfehler:</strong><br>
+        <ul style="margin-bottom:0;">
+          <li>' . implode('</li><li>', $healthIssues) . '</li>
+        </ul>
+      </div>
+    ');
   }
 
   // Zentrale Instanzen initialisieren
