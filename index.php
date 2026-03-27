@@ -2,6 +2,7 @@
 /**
   *
   * TaskManager - ein einfaches und leichtes PHP Aufgaben-Management System auf Basis von PHP und SQLite
+  * Dashboard / Startseite nach dem Login
   *
   * @author Thomas Boettcher <github[at]ztatement[dot]com>
   * @copyright (c) 2026 ztatement
@@ -10,24 +11,23 @@
   * @file $Id: index.php 1 Montag, 9. Februar 2026, 09:57:50 GMT+0200Z ztatement $
   *
   * @link https://github.com/ztatement/taskmanager
-  *
   * @license MIT
-  *
-  * @category Hauptseite
-  * @package TaskManager
-  *
-  * @description Hauptseite für TaskManager
   */
 
   declare(strict_types=1);
 
+  // Zentrale Initialisierung: Lädt Autoloader, Konfiguration, Datenbankverbindung und Sprachdateien
   require_once './includes/init.php';
+
+  // Sicherheitsschranke: Leitet nicht authentifizierte Benutzer automatisch zur Login-Seite um
   $taskUser->requireLogin();
 
+  // HTML-Grundgerüst, Navigation und globale CSS/JS Ressourcen laden
   require_once './includes/header.php';
 
 ?>
   <div class="container py-5">
+    <!-- Willkommens-Bereich (Hero-Section) -->
     <div class="p-5 mb-4 bg-body-tertiary rounded-3">
       <div class="container-fluid py-5">
         <h1 class="display-4 fw-bold fs-1"><?= $lang['index_welcome_back'] ?> <span><?= htmlspecialchars($taskUser->getUsername() ?? '') ?></span></h1>
@@ -38,4 +38,7 @@
     </div>
   </div>
 
-<?php require './includes/footer.php'; ?>
+<?php 
+  // Footer inklusive Chat-Widget (falls berechtigt) und ZST-Rechner Modal einbinden
+  require './includes/footer.php'; 
+?>
