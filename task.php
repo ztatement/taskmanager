@@ -1,29 +1,24 @@
 <?php
-/**
-  * 
-  * TaskManager - ein einfaches und leichtes PHP Aufgaben-Management System auf Basis von PHP und SQLite
-  *
-  * @author Thomas Boettcher <github[at]ztatement[dot]com>
-  * @copyright (c) 2026 ztatement
-  *
-  * @version 1.0.0.2026.03.24
-  * @file $Id: task.php 1 Donnerstag, 12. Februar 2026, 20:49:51 GMT+0200Z ztatement $
-  *
-  * @link https://github.com/ztatement/taskmanager
-  *
-  * @license MIT
-  *
-  * @category Hauptseite
-  * @package TaskManager
-  *
-  * @description Hauptseite für TaskManager
-  */
 
   declare(strict_types=1);
 
 /**
-  * TaskManager - Aufgabenerfassung
+  * 
+  * TaskManager - ein einfaches und leichtes PHP Aufgaben-Management System auf Basis von PHP und SQLite
+  *
+  * @author Thomas Boettcher @ztatement (github[at]ztatement[dot]com)
+  * @copyright (c) 2026 ztatement
+  *
+  * @version 1.0.0.2026.03.24
+  * @file $Id: task.php $
+  * @created $Id: Donnerstag, 12. Februar 2026, 20:49:51 GMT+0200Z ztatement $
+  * 
+  * @description TaskManager - Aufgabenerfassung
+  *
+  * @repository https://github.com/ztatement/taskmanager
+  * @license MIT (https://opensource.org/license/MIT)
   */
+
   require_once './includes/init.php';
 
   use classes\core\DatabaseConnection;
@@ -46,6 +41,7 @@
     isset( $_GET['get_today_count'] )||
     isset( $_GET['get_assigned_tasks'] )||
     isset($_POST['bulk_create'])||
+    isset($_POST['set_active_process'])||
     isset( $_GET['get_templates'] );
 
   if( $isAjaxRequest )
@@ -56,7 +52,6 @@
 
     try
     {
-
       $taskService=new TaskService( $taskDb, $taskUser, $csrf, $lang );
 
       // Bulk Create Handler
@@ -94,41 +89,44 @@
             $bom = fread($handle, 3);
             if ($bom !== "\xEF\xBB\xBF") rewind($handle);
             
-            while (($data = fgetcsv($handle, 0, ";")) !== FALSE) {
+            while (($data = fgetcsv($handle, 0, ";")) !== FALSE)
+            {
               // Leere Zeilen oder Header überspringen
               if (empty($data) || (count($data) === 1 && trim($data[0]) === '')) continue;
               if ($data[0] === 'Datum' && $data[1] === 'Auftrag') continue;
 
-              // Prüfen ob es das Export-Format ist (mind. 8 Spalten)
-              // Format: Datum;Auftrag;Vertragskonto;Anlage;Novomind-ID;Bemerkung;ReKo;Ergebnis
-              if (count($data) >= 8)
+              // Prüfen ob es das Export-Format ist (mind. 9 Spalten)
+              // Format: Datum;Auftrag;Vertragskonto;Anlage;MaLo-ID;Novomind-ID;Bemerkung;ReKo;Ergebnis
+              if (count($data) >= 9)
               {
                 $resMap = [
-                  'erledigt' => '1',
-                  'weitergeleitet' => '2',
-                  'zurückgelegt' => '3',
-                  'Wiedervorlage' => '4'
+                  'erledigt'        => '1',
+                  'weitergeleitet'  => '2',
+                  'zurückgelegt'    => '3',
+                  'Wiedervorlage'   => '4'
                 ];
-                $ergebnis = $resMap[$data[7]] ?? '1';
+                $ergebnis = $resMap[trim($data[8])] ?? '1';
 
-                $reko = trim($data[6]);
+                $reko = trim($data[7]);
                 if ($reko !== '' && is_numeric($reko)) $reko = 'Rechnung-Korrektur ' . $reko;
                 elseif ($reko === '') $reko = 'Keine Auswahl';
 
                 $csvDateStr = trim($data[0]); // Datum aus der ersten Spalte
 
                 $anlagen[] = [
-                  'anlagennummer' => trim($data[3]),
-                  'auftrag' => trim($data[1]),
+                  'auftrag'       => trim($data[1]),
                   'vertragskontonummer' => trim($data[2]),
-                  'novomind_id' => trim($data[4]),
-                  'bemerkung' => trim($data[5]),
-                  'reko' => $reko,
-                  'ergebnis' => $ergebnis,
+                  'anlagennummer' => trim($data[3]),
+                  'malo_id'       => trim($data[4]),
+                  'novomind_id'   => trim($data[5]),
+                  'bemerkung'     => trim($data[6]),
+                  'reko'          => $reko,
+                  'ergebnis'      => $ergebnis,
                   'start_time_override' => strtotime($csvDateStr)
                 ];
               }
-              else {
+              else
+              {
                 // Fallback: Einfache Liste, erste Spalte als Anlage
                 $anlagen[] = trim($data[0]);
               }
@@ -136,7 +134,8 @@
             fclose($handle);
           }
         }
-        else {
+        else
+        {
           // 2. Textarea Fallback
           $list = $_POST['anlagen_liste'] ?? '';
           $lines = preg_split('/\r\n|\r|\n/', $list);
@@ -144,11 +143,11 @@
           {
             if (trim($line) !== '')
             {
-                $anlagen[] = [
-                    'anlagennummer' => trim($line),
-                    'start_time_override' => $defaultTimestamp,
-                    'end_time_override' => $defaultTimestamp + 3 // 3 Sekunden Dauer für Listen-Erfassung
-                ];
+              $anlagen[] = [
+                'anlagennummer' => trim($line),
+                'start_time_override' => $defaultTimestamp,
+                'end_time_override' => $defaultTimestamp + 3 // je 3 Sekunden Dauer für Listen-Erfassung
+              ];
             }
           }
         }
@@ -164,7 +163,10 @@
 
         $result = $bulkService->createBulkTasks($taskUser->getUserId(), $defaultTimestamp, $anlagen, $baseData);
 
-        ob_clean(); // Puffer leeren für sauberes JSON
+        if (ob_get_length())
+        {
+          ob_clean();
+        }
         header('Content-Type: application/json');
         echo json_encode($result);
 
@@ -175,20 +177,26 @@
 
       if( $response )
       {
-        ob_clean(); // Puffer leeren für sauberes JSON
-        header( 'Content-Type: application/json' );
-        if( isset( $response['http_code'] ) )
+        if (ob_get_length())
         {
-          http_response_code( $response['http_code'] );
+          ob_clean();
         }
-        echo json_encode( $response['data'] );
+        header( 'Content-Type: application/json' );
+        if (isset($response['http_code']))
+        {
+          http_response_code($response['http_code']);
+        }
+        echo json_encode($response['data']);
 
         exit();
       }
     }
     catch( Throwable $e )
     {
-      ob_clean(); // Puffer leeren für sauberes JSON
+      if (ob_get_length())
+      {
+        ob_clean();
+      }
       header( 'Content-Type: application/json' );
       http_response_code( 500 );
       echo json_encode( [
@@ -199,7 +207,6 @@
       exit();
     }
   }
-
   // --- ENDE AJAX HANDLER ---
 
 
@@ -215,6 +222,10 @@
   $badgeClass=$viewData['badgeClass'];
   $announcement = $viewData['announcement'];
   $announcement2 = $viewData['announcement2'];
+  $activeTimerStart = $viewData['activeTimerStart'] ?? 0;
+  $activeProcess = $viewData['activeProcess'] ?? null;
+  $timerPersistenceLimit = $viewData['timerPersistenceLimit'] ?? 3600;
+  $todaySpecial = $viewData['todaySpecial'] ?? null;
 
   require_once './includes/header.php'; // Lädt den neuen, eigenständigen Header
   $base_path='';
