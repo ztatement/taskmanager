@@ -2,31 +2,25 @@
 /**
   * Footer für TaskManager
   * 
-  * @author Thomas Boettcher <github[at]ztatement[dot]com>
+  * @author Thomas Boettcher @ztatement (github[at]ztatement[dot]com)
   * @copyright (c) 2026 ztatement
   * 
   * @version 1.0.0.2026.03.24
-  * @file $Id: footer.php 1 Montag, 9. Februar 2026, 09:57:55 GMT+0200Z ztatement $
+  * @file $Id: footer.php $
+  * @created $Id: 1 Montag, 9. Februar 2026, 09:57:55 GMT+0200Z ztatement $
+  *
+  * @description Footer für den Aufgaben- und Projektmanagementbereich
   * 
-  * @link https://github.com/ztatement/taskmanager
-  * 
-  * @license MIT
-  * 
-  * @category Footer
-  * @package TaskManager
-  * 
-  * @description Footer Template
+  * @repository https://github.com/ztatement/taskmanager
+  * @license MIT (https://opensource.org/license/MIT)
   */
 
-/**
- * @var \classes\security\CsrfSecurity $csrf
- */
   use classes\security\CsrfSecurity;
 
-  if( $close_container??false ): 
+  if( $close_container??false ):
 ?>
-      </div>
-    </div> <!-- Schließt den Container aus header.php -->
+    </div>
+  </div> <!-- Schließt den Container aus header.php -->
   <?php endif;?>
 <?php
   // Chat-Berechtigungen prüfen
@@ -45,32 +39,65 @@
   include __DIR__ . '/module/zst_rechner.php';
 ?>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="./static/js/color-modes.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script nonce="<?= CSP_NONCE ?>" src="<?= BOOTSTRAP_JS ?>"></script>
   <?php if ($showChat): ?>
-  <script src="./static/js/chat.js"></script>
+  <script nonce="<?= CSP_NONCE ?>" src="<?= JS_URL ?>chat.js"></script>
   <?php endif; ?>
-  <script src="./static/js/notes.js"></script>
-  <script>
-    <?php 
-    // Sicherstellen, dass ein CSRF-Token verfügbar ist, auch wenn die Seite selbst keines initialisiert hat
-    if (!isset($csrf)) { $csrf = new CsrfSecurity(); }
-    if (isset($csrf)):
-    ?>
-    if (typeof csrfToken === 'undefined') { var csrfToken = '<?= $csrf->getToken() ?>'; }
-    <?php endif; ?>
-  </script>
-  <script>
-    // Globales Dark-Theme für alle SweetAlert2 Popups setzen
-    if (typeof Swal !== 'undefined') {
-      window.Swal = Swal.mixin({
-        /*  background: '< ?= defined("SWAL_BACKGROUND") ? SWAL_BACKGROUND : "#212529" ?>',
-          color: '< ?= defined("SWAL_COLOR") ? SWAL_COLOR : "#f8f9fa" ?>',*/
-        confirmButtonColor: '<?= defined("SWAL_CONFIRM_BUTTON_COLOR") ? SWAL_CONFIRM_BUTTON_COLOR : "#85085fff" ?>',
-        cancelButtonColor: '<?= defined("SWAL_CANCEL_BUTTON_COLOR") ? SWAL_CANCEL_BUTTON_COLOR : "#6c757d" ?>'
-      });
-    }
+  <script nonce="<?= CSP_NONCE ?>" src="<?= JS_URL ?>notes.js"></script>
+  <script nonce="<?= CSP_NONCE ?>">
+  // Automatisches Mitsenden des CSRF-Tokens für alle AJAX-Anfragen
+  (function() {
+    const isInternal = (url) => {
+      if (!url) return true;
+      return !url.startsWith('http') || url.startsWith(window.location.origin);
+    };
+
+    // 1. Interceptor für die moderne Fetch-API
+    const originalFetch = window.fetch;
+    window.fetch = function(resource, config = {}) {
+      const method = config.method ? config.method.toUpperCase() : 'GET';
+      const url = typeof resource === 'string' ? resource : resource.url;
+
+      if (['POST', 'PUT', 'DELETE'].includes(method) && isInternal(url)) {
+        config.headers = config.headers || {};
+        if (config.headers instanceof Headers) {
+          if (!config.headers.has('X-CSRF-Token')) config.headers.set('X-CSRF-Token', window.taskConfig.csrfToken);
+          config.headers.set('X-CSP-Nonce', window.taskConfig.cspNonce);
+        } else {
+          if (!config.headers['X-CSRF-Token']) config.headers['X-CSRF-Token'] = window.taskConfig.csrfToken;
+          config.headers['X-CSP-Nonce'] = window.taskConfig.cspNonce;
+        }
+      }
+      // Nonce auch für GET-Requests mitsenden (wichtig für Template-Nachladen)
+      if (method === 'GET' && isInternal(url)) {
+        config.headers = config.headers || {};
+        if (config.headers instanceof Headers) {
+            config.headers.set('X-CSP-Nonce', window.taskConfig.cspNonce);
+        } else {
+            config.headers['X-CSP-Nonce'] = window.taskConfig.cspNonce;
+        }
+      }
+      return originalFetch(resource, config);
+    };
+
+    // 2. Interceptor für klassische XMLHttpRequests (z.B. jQuery oder Vanilla AJAX)
+    const originalOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url) {
+      this._method = method;
+      this._url = url;
+      return originalOpen.apply(this, arguments);
+    };
+
+    const originalSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function() {
+      const method = (this._method || '').toUpperCase();
+      if (['POST', 'PUT', 'DELETE'].includes(method) && isInternal(this._url)) {
+        this.setRequestHeader('X-CSRF-Token', window.taskConfig.csrfToken);
+      }
+      return originalSend.apply(this, arguments);
+    };
+
+    })();
   </script>
  </body>
 </html>
