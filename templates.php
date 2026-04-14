@@ -1,25 +1,24 @@
 <?php
-/**
- * Vorlagenverwaltung für TaskManager
- * 
- * @author Thomas Boettcher <github[at]ztatement[dot]com>
- * @copyright (c) 2026 ztatement
- * 
- * @version 1.0.0.2026.03.24
- * @file $Id: templates.php 1 Montag, 9. Februar 2026, 09:57:51 GMT+0200Z ztatement $
- * 
- * @link https://github.com/ztatement/taskmanager
- * 
- * @license MIT
- * 
- * @category Hauptseite
- * @package TaskManager
- * 
- * @description Vorlagenverwaltung für TaskManager
- */
 
   declare(strict_types=1);
 
+/**
+  * Vorlagenverwaltung für TaskManager
+  * 
+  * @author Thomas Boettcher @ztatement (github[at]ztatement[dot]com)
+  * @copyright (c) 2026 ztatement
+  * 
+  * @version 1.0.0.2026.03.24
+  * @file $Id: templates.php $
+  * @created $Id: 1 Montag, 9. Februar 2026, 09:57:51 GMT+0200Z ztatement $
+  * 
+  * @description Vorlagenverwaltung für den Aufgaben-Manager
+  *
+  * @repository https://github.com/ztatement/taskmanager
+  * @license MIT (https://opensource.org/license/MIT)
+  */
+
+  // Zentrale Initialisierung: Lädt Autoloader, Konfiguration, Datenbankverbindung und Sprachdateien
   require_once './includes/init.php';
 
   use classes\security\CsrfSecurity;
@@ -27,7 +26,6 @@
   // $taskUser wird bereits in init.php initialisiert
   $taskUser->requireLogin();
   $userId = $taskUser->getUserId();
-
 
   $csrf=new CsrfSecurity();
 
@@ -50,7 +48,6 @@
     }
     else
     {
-
       if( isset( $_POST['save_template'] ) )
       {
         $title=trim( $_POST['title']??'' );
@@ -90,8 +87,7 @@
           {
             $success=$lang['template_success_saved'] ?? 'Saved';
             if( !$id )
-            { 
-              // Bei neuem Eintrag Formular leeren
+            { // Bei neuem Eintrag Formular leeren
               $title='';
               $content='';
               // Redirect um "Neu-Laden" Problem zu verhindern
@@ -155,8 +151,7 @@
   if( $editIdString )
   {
     // Format: type_id (z.B. user_5, global_2)
-    if (strpos($editIdString, '_') !== false)
-    {
+    if (strpos($editIdString, '_') !== false) {
       [$type, $id] = explode('_', $editIdString);
       $selectedTemplate = $taskDb->templates->getTemplate((int)$id, $type, $userId);
     }
