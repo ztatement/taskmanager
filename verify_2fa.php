@@ -1,25 +1,24 @@
 <?php
-/**
- * 2FA Verifizierungsseite für TaskManager
- * 
- * @author Thomas Boettcher <github[at]ztatement[dot]com>
- * @copyright (c) 2026 ztatement
- * 
- * @version 1.0.0.2026.03.24
- * @file $Id: verify_2fa.php 1 Montag, 9. Februar 2026, 09:57:51 GMT+0200Z ztatement $
- * 
- * @link https://github.com/ztatement/taskmanager
- * 
- * @license MIT
- * 
- * @category Hauptseite
- * @package TaskManager
- * 
- * @description 2FA Verifizierungsseite für TaskManager
- */
 
   declare(strict_types=1);
 
+/**
+  * Zwei-Faktor-Authentifizierungsseite für TaskManager
+  * 
+  * @author Thomas Boettcher <github[at]ztatement[dot]com>
+  * @copyright (c) 2026 ztatement
+  * 
+  * @version 1.0.0.2026.03.24
+  * @file $Id: verify_2fa.php $
+  * @created $Id: 1 Montag, 9. Februar 2026, 09:57:51 GMT+0200Z ztatement $
+  *
+  * @description 2FA Verifizierungsseite für TaskManager
+  *
+  * @repository https://github.com/ztatement/taskmanager
+  * @license MIT (https://opensource.org/license/MIT)
+  */
+
+  // Zentrale Initialisierung: Lädt Autoloader, Konfiguration, Datenbankverbindung und Sprachdateien
   require_once './includes/init.php';
 
   use classes\services\Verify2FAService;
@@ -45,7 +44,7 @@
     {
       header("Location: " . $result['redirect']);
       exit();
-    } 
+    }
     elseif (isset($result['error']))
     {
       $error = $result['error'];
