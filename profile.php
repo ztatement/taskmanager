@@ -1,34 +1,33 @@
 <?php
+
+  declare(strict_types = 1);
+
 /**
   * Profil Seite
   * 
-  * @author Thomas Boettcher <github[at]ztatement[dot]com>
+  * @author Thomas Boettcher @ztatement (github[at]ztatement[dot]com)
   * @copyright (c) 2026 ztatement
   * 
   * @version 1.0.0.2026.03.24
-  * @file $Id: profile.php 1 Montag, 9. Februar 2026, 09:57:51 GMT+0200Z ztatement $
-  * 
-  * @link https://github.com/ztatement/taskmanager
-  * 
-  * @license MIT
-  * 
-  * @category Profile
-  * @package TaskManager
-  * 
+  * @file $Id: profile.php $
+  * @created $Id: 1 Montag, 9. Februar 2026, 09:57:51 GMT+0200Z ztatement $
+  *
   * @description Benutzerprofil verwalten
+  *
+  * @repository https://github.com/ztatement/taskmanager
+  * @license MIT (https://opensource.org/license/MIT)
   */
 
-  declare(strict_types=1);
-
+  // Zentrale Initialisierung: Lädt Autoloader, Konfiguration, Datenbankverbindung und Sprachdateien
   require_once './includes/init.php';
 
   use classes\security\CsrfSecurity;
   use classes\services\ProfileService;
 
+
   $taskUser->requireLogin();
   $csrf = new CsrfSecurity();
   $profileService = new ProfileService( $taskDb, $taskUser, $csrf, $lang );
-
   $error = '';
   $success = '';
 
@@ -38,16 +37,20 @@
   $success = $result['success']??'';
 
   // Datei-Download verarbeiten, falls angefordert
-  if (isset($result['download_file']) && file_exists($result['download_file']))
+  if( isset( 
+    $result['download_file'] ) && file_exists( 
+    $result['download_file'] ) )
   {
-    header('Content-Description: File Transfer');
-    header('Content-Type: application/octet-stream');
-    header('Content-Disposition: attachment; filename="' . $result['filename'] . '"');
-    header('Expires: 0');
-    header('Cache-Control: must-revalidate');
-    header('Content-Length: ' . filesize($result['download_file']));
-    readfile($result['download_file']);
-    exit;
+    header( 'Content-Description: File Transfer' );
+    header( 'Content-Type: application/octet-stream' );
+    header( 'Content-Disposition: attachment; filename="' . $result['filename'] . '"' );
+    header( 'Expires: 0' );
+    header( 'Cache-Control: must-revalidate' );
+    header( 'Content-Length: ' . filesize( 
+      $result['download_file'] ) );
+    readfile( 
+      $result['download_file'] );
+    exit();
   }
 
   // Header erst einbinden, nachdem alle Redirects/Logik abgearbeitet sind
@@ -55,7 +58,7 @@
 
   // Profildaten laden
   $profileData = $profileService->getProfileData();
-  extract($profileData); // Entpackt $user, $is2FAEnabled, $dbInfo, $availableLanguages
+  extract( $profileData ); // Entpackt $user, $is2FAEnabled, $dbInfo, $availableLanguages
 
   include TEMPLATE_PATH . 'profile' . TEMPLATE_EXTENSION;
 
