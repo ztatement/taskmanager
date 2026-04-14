@@ -1,24 +1,22 @@
 <?php
+
+  declare(strict_types=1);
+
 /**
   * Notes Page
   * 
-  * @author Thomas Boettcher <github[at]ztatement[dot]com>
+  * @author Thomas Boettcher @ztatement (github[at]ztatement[dot]com)
   * @copyright (c) 2026 ztatement
   * 
   * @version 1.0.0.2026.03.24
-  * @file $Id: notes.php 1 Dienstag, 10. Februar 2026, 06:34:09 GMT+0200Z ztatement $
+  * @file $Id: notes.php $
+  * @created $Id: 1 Freitag, 20. März 2026, 05:41:31 GMT+0200Z ztatement $
   * 
-  * @link https://github.com/ztatement/taskmanager
+  * @description Manages Benutzer-Notizen
   * 
-  * @license MIT
-  * 
-  * @category Notes
-  * @package TaskManager
-  * 
-  * @description Manages user notes
+  * @repository https://github.com/ztatement/taskmanager
+  * @license MIT (https://opensource.org/license/MIT)
   */
-
-  declare(strict_types=1);
 
   require_once './includes/init.php';
 
