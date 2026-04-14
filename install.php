@@ -1,7 +1,18 @@
 <?php
+
+   declare(strict_types=1);
+
 /**
   * TaskManager - Installations- und Wartungsskript
   *
+  * @author Thomas Boettcher @ztatement (github[at]ztatement[dot]com)
+  * @copyright (c) 2026 ztatement
+  * 
+  * @version 1.0.0.2026.03.24
+  * @file $Id: install.php $
+  * @created $Id: 1 Mittwoch, 18. März 2026, 05:57:51 GMT+0200Z ztatement $
+  *
+  * @description Installations- und Wartungsskript
   * Dieses Skript dient der Ersteinrichtung des Systems sowie der manuellen 
   * Aktualisierung der Datenbankstrukturen bei Versionssprüngen.
   *
@@ -11,17 +22,9 @@
   * - Anlage des ersten Administrator-Accounts
   * - Migration bestehender Benutzer-Datenbanken auf neue Schemata
   *
-  * @author Thomas Boettcher <github[at]ztatement[dot]com>
-  * @copyright (c) 2026 ztatement
-  *
-  * @version 1.0.0.2026.03.24
-  * @file $Id: install.php 1 Mittwoch, 18. März 2026, 05:57:51 GMT+0200Z ztatement $
-  *
-  * @link https://github.com/ztatement/taskmanager
-  * @license MIT
+  * @repository https://github.com/ztatement/taskmanager
+  * @license MIT (https://opensource.org/license/MIT)
   */
-
-  declare(strict_types=1);
 
   ob_start();
 
@@ -94,7 +97,7 @@
   $healthIssues = array_merge($dbHealthIssues, $extensionIssues);
 
   // Zusätzliche explizite Prüfung des Datenbankverzeichnisses
-  $dbDir = dirname(DB_FILE);
+  $dbDir = DB_FILE_PATH;
   if (!is_dir($dbDir) || !is_writable($dbDir))
   {
     $healthIssues[] = "Das Datenbank-Verzeichnis ist nicht beschreibbar: " . htmlspecialchars($dbDir);
@@ -118,7 +121,7 @@
     */
     if (isset($_POST['update_db_structure']))
     {
-      if (!$csrf->validateToken($post['csrf_token'] ?? ''))
+      if (!$csrf->validateToken($_POST['csrf_token'] ?? ''))
       {
         $error = $lang['admin_error_csrf'] ?? 'Ungültiger Sicherheitstoken. Bitte versuchen Sie es erneut.';
       }
@@ -137,8 +140,8 @@
           foreach ($allUsers as $user)
           {
             // Der bloße Verbindungsaufbau via DatabaseConnection triggert die internen 'CREATE TABLE IF NOT EXISTS' Logiken.
-            DatabaseConnection::userData(dirname(DB_FILE), $user['username']);
-            DatabaseConnection::userTasks(dirname(DB_FILE), $user['username'], $currentYear);
+            DatabaseConnection::userData(DB_FILE_PATH, $user['username']);
+            DatabaseConnection::userTasks(DB_FILE_PATH, $user['username'], $currentYear);
           }
           $success = $lang['install_success_db_updated'] ?? 'Datenbankstruktur erfolgreich aktualisiert.';
         }
@@ -180,9 +183,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TaskManager Installation</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css">
+    <link href="<?= BOOTSTRAP_CSS ?>" rel="stylesheet">
+    <link rel="stylesheet" href="<?= FONT_AWESOME_CSS ?>">
+    <link rel="stylesheet" href="<?= FLAG_CSS ?>">
   </head>
   <body class="d-flex justify-content-center align-items-center min-vh-100 bg-dark-subtle">
     <div class="card shadow-lg" style="width: 100%; max-width: 600px;">
@@ -256,7 +259,7 @@
         <?php endif; ?>
       </div>
     </div>
-    <script src="static/js/utils.js"></script>
-    <script src="static/js/register.js"></script>
+    <script src="<?= JS_URL ?>utils.js"></script>
+    <script src="<?= JS_URL ?>register.js"></script>
   </body>
   </html>
