@@ -1,24 +1,23 @@
 <?php
+
+  declare(strict_types=1);
+
 /**
   * Task Listen Seite
   * 
-  * @author Thomas Boettcher <github[at]ztatement[dot]com>
+  * @author Thomas Boettcher @ztatement (github[at]ztatement[dot]com)
   * @copyright (c) 2026 ztatement
   * 
-  * @version 1.0.0.2026.03.24
-  * @file $Id: tasks_list.php 1 Montag, 9. Februar 2026, 09:57:51 GMT+0200Z ztatement $
+  * @version 1.0.0.2026.03.27
+  * @file $Id: tasks_list.php $
+  * @created $Id: Montag, 9. Februar 2026, 09:57:51 GMT+0200Z ztatement $
   * 
-  * @link https://github.com/ztatement/taskmanager
-  * 
-  * @license MIT
-  * 
-  * @category Hauptseite
-  * @package TaskManager
-  * 
-  * @description Zeigt eine Liste aller Tasks mit Filter- und Sortieroptionen an
+  * @description TaskManager - Aufgabenliste
+  * Zeigt eine Liste aller Tasks mit Filter- und Sortieroptionen an
+  *
+  * @repository https://github.com/ztatement/taskmanager
+  * @license MIT (https://opensource.org/license/MIT)
   */
-
-  declare(strict_types=1);
 
   require_once './includes/init.php';
 
@@ -26,6 +25,7 @@
   use classes\helpers\PaginationHelper;
   use classes\helpers\Helpers;
   use classes\security\CsrfSecurity;
+  use classes\services\UserVisibilityService;
 
   $taskUser->requireLogin();
 
@@ -44,11 +44,12 @@
   $highlightedIdsParam =  $_GET['highlighted_ids'] ?? '';
   $highlightedIds =       !empty($highlightedIdsParam) ? explode(',', $highlightedIdsParam) : [];
 
-  $userId =               $taskUser->getUserId();
+  // Initialisierung der Abfrage-ID (Verwendung von effectiveUserId zur Vermeidung von Header-Kollisionen)
+  $effectiveUserId = (int)$taskUser->getUserId();
 
   // --- 2. ROLLEN-EINSCHRÄNKUNGEN (DATUM) ---
   // Definiert Zeitlimits basierend auf der Rolle und wendet sie zentral an
-  $limitDate = null;
+  $limitDate = null; 
   if ($taskUser->isManager())
   {
     $limitDate = date('Y-m-d', strtotime('first day of last month'));
@@ -63,7 +64,7 @@
   }
 
   if ($limitDate)
-  {
+  {    
     // Wenn kein Startdatum gesetzt ist oder es zu weit zurückliegt, Limit erzwingen
     if (empty($customStart) || $customStart < $limitDate)
     {
@@ -84,49 +85,69 @@
   if ($showUserColumn)
   {
     $allUsers = $taskDb->users->getAllTaskUsers();
+    // Zentrale Sichtbarkeitsregeln anwenden
+    $allUsers = UserVisibilityService::filterUsers($allUsers, $taskDb, $taskUser);
 
-    // Supervisor/TeamLeader sehen keine Admins/Manager in der Liste
-    if ($taskUser->isSupervisor() || $taskUser->isTeamLeader())
-    {
-      $allUsers = array_filter($allUsers, function ($u) {
-        return !in_array($u['role'], ['admin', 'manager']);
-      });
-    }
-
+    // 1. Berechtigungsprüfung für den ausgewählten Benutzer-Filter
     if (!empty($filterUser))
     {
       $requestedUserId = (int)$filterUser;
-      if ($taskUser->isSupervisor() || $taskUser->isTeamLeader())
+      $targetUser = $taskDb->users->getTaskUserById($requestedUserId);
+      if ($targetUser && UserVisibilityService::canViewUser($targetUser, $taskUser, $taskDb))
       {
-        $targetUser = $taskDb->users->getTaskUserById($requestedUserId);
-        if ($targetUser && !in_array($targetUser['role'], ['admin', 'manager']))
-        {
-          $userId = $requestedUserId;
-        }
-      }
-      else
-      {
-        $userId = $requestedUserId;
+        $effectiveUserId = $requestedUserId;
       }
     }
   }
 
   // --- 4. EXPORT LOGIK ---
-  if (isset($_GET['export']) && $_GET['export'] === 'csv')
+  if (isset($_GET['export']) && ($_GET['export'] === 'csv' || $_GET['export'] === 'pdf')) 
   {
     // Alle gefilterten Aufgaben ohne Seitenlimit abrufen
     $tasksToExport = $taskDb->tasks->getAllTasksFiltered(
-      $userId, $search, $filterErgebnis, $filterReko, $sort, $order, 
-      $filterPeriod, $customStart, $customEnd, $highlightedIds
+      $effectiveUserId,
+      $search, 
+      $filterErgebnis, 
+      $filterReko, 
+      $sort, 
+      $order, 
+      $filterPeriod, 
+      $customStart, 
+      $customEnd, 
+      $highlightedIds
     );
 
+    $exportColsJson = $taskDb->settings->getSetting('export_task_columns')['value'] ?? '[]';
+    $activeCols = json_decode($exportColsJson, true) ?: [];
+    $logoSetting = $taskDb->settings->getSetting('report_pdf_logo')['value'] ?? '';
+
     $reportService = new ReportService($lang);
-    $reportService->exportTasksAsCsv($tasksToExport);
+    if ($_GET['export'] === 'csv') 
+    {
+      $reportService->exportTasksAsCsv($tasksToExport, $activeCols);
+    } 
+    else 
+    {
+      $reportService->exportTasksAsPdf($tasksToExport, $activeCols, $logoSetting);
+    }
     exit();
   }
 
   // --- 5. ANZEIGE LOGIK ---
-  require_once './includes/header.php';
+  require_once INCLUDES_PATH . '/header.php';
+
+  // --- DEBUG AUSGABE FÜR ADMINS ---
+  $isDebugMode = ($taskDb->settings->getValue('debug_mode_enabled') === '1');
+  if ($taskUser->isAdmin() && $isDebugMode)
+  {
+    echo '<div class="alert alert-warning mt-3 mx-3 shadow-sm border-warning">';
+    echo '<strong><i class="fas fa-bug me-2"></i>Debug Info:</strong> ';
+    echo 'Erkannte Rolle: <span class="badge bg-dark">' . htmlspecialchars($taskUser->getRole()) . '</span> | ';
+    echo 'Deine ID: <code>' . $taskUser->getUserId() . '</code> | ';
+    echo 'Gewählter Filter (GET): <code>' . htmlspecialchars($filterUser) . '</code> | ';
+    echo 'Effektive Abfrage-ID: <span class="badge bg-danger">' . $effectiveUserId . '</span>';
+    echo '</div>';
+  }
 
   // Pagination Parameter
   $limit = 20;
@@ -140,20 +161,37 @@
 
   // Daten abrufen
   $tasks = $taskDb->tasks->getAllTasksPaginated(
-    $userId, $limit, $offset, $search, $filterErgebnis, $filterReko, $sort, $order, 
-    $filterPeriod, $customStart, $customEnd, $highlightedIds
+    $effectiveUserId, 
+    $limit, 
+    $offset, 
+    $search, 
+    $filterErgebnis, 
+    $filterReko, 
+    $sort, 
+    $order, 
+    $filterPeriod, 
+    $customStart, 
+    $customEnd, 
+    $highlightedIds
   );
   $totalTasks = $taskDb->tasks->countAllTasks(
-    $userId, $search, $filterErgebnis, $filterReko, $filterPeriod, $customStart, $customEnd, $highlightedIds
+    $effectiveUserId, 
+    $search, 
+    $filterErgebnis, 
+    $filterReko, 
+    $filterPeriod, 
+    $customStart, 
+    $customEnd, 
+    $highlightedIds
   );
   $totalPages = PaginationHelper::getTotalPages($totalTasks, $limit);
 
   // Ergebnis-Mapping
   $resultMap = [
-    '1' => 'erledigt', 
-    '2' => 'weitergeleitet', 
-    '3' => 'zurückgelegt', 
-    '4' => 'Wiedervorlage'
+    '1' => $lang['result_done'] ?? 'erledigt', 
+    '2' => $lang['result_forwarded'] ?? 'weitergeleitet', 
+    '3' => $lang['result_on_hold'] ?? 'zurückgelegt', 
+    '4' => $lang['result_resubmission'] ?? 'Wiedervorlage'
   ];
 
   // ReKo Optionen
@@ -164,15 +202,18 @@
     'Rechnung-Korrektur >9'
   ];
 
-  // Helper-Funktion für Dauer-Formatierung
-  function formatDuration($seconds)
-  {
-    $m = floor($seconds / 60);
-    $s = $seconds % 60;
-    return ($m > 0 ? $m . 'm ' : '') . $s . 's';
-  }
-
-  $sortLinkHelper = function($column, $label) use ($sort, $order, $search, $filterErgebnis, $filterReko, $filterPeriod, $customStart, $customEnd, $filterUser)
+  $sortLinkHelper = function($column, $label) 
+                    use (
+                      $sort, 
+                      $order, 
+                      $search, 
+                      $filterErgebnis, 
+                      $filterReko, 
+                      $filterPeriod, 
+                      $customStart, 
+                      $customEnd, 
+                      $filterUser, 
+                      $highlightedIdsParam) 
   {
     $params = [
       'search' => $search,
@@ -181,9 +222,16 @@
       'period' => $filterPeriod,
       'start' => $customStart,
       'end' => $customEnd,
-      'user_filter' => $filterUser
+      'user_filter' => $filterUser,
+      'highlighted_ids' => $highlightedIdsParam
     ];
-    return Helpers::getSortLink($column, $label, $sort, $order, $params);
+    return Helpers::getSortLink(
+      $column, 
+      (string)($label ?? $column),
+      $sort, 
+      $order, 
+      $params
+    );
   };
 
   include TEMPLATE_PATH . 'tasks_list' . TEMPLATE_EXTENSION;
