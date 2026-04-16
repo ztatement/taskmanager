@@ -95,7 +95,7 @@
 
 ?>
 <!DOCTYPE html>
-<html lang="<?=$lang['language'];?>" data-bs-theme="dark">
+<html lang="<?=$lang['language'];?>" data-bs-theme="auto">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -115,19 +115,28 @@
   <script nonce="<?= CSP_NONCE ?>">
     <?php if (!isset($csrf)) { $csrf = new \classes\security\CsrfSecurity(); } ?>
     // Zentrales Konfigurationsobjekt für JavaScript (CSP-konform)
+    // Erweitertes taskConfig inkl. Kennung
+    <?php
+    $userKennung = '';
+    if (isset($_SESSION['task_user_id']))
+    {
+      $u = $taskDb->users->getTaskUserById((int)$_SESSION['task_user_id']);
+      if ($u && isset($u['kennung'])) $userKennung = $u['kennung'];
+    }
+    ?>
     window.taskConfig = {
       csrfToken: '<?= $csrf->getToken() ?>',
       cspNonce: '<?= CSP_NONCE ?>',
       username: '<?= htmlspecialchars($_SESSION['task_username'] ?? 'Gast') ?>',
       userId: '<?= $taskUser->getUserId() ?>',
       role: '<?= $taskUser->getRole() ?>',
+      kennung: <?= json_encode($userKennung) ?>,
       basePath: '<?= $base_path ?? "" ?>',
       timerLimit: <?= (int)$taskDb->settings->getValue('timer_persistence_limit', 3600) ?>,
       // Globale SweetAlert2 Konfiguration (CSP-optimiert)
-      swalConfig: {
-        nonce: '<?= CSP_NONCE ?>',
-        buttonsStyling: false,
-        customClass: {
+        swalConfig: {
+          buttonsStyling: false,
+          customClass: {
           confirmButton: 'btn btn-primary px-4 mx-2',
           cancelButton: 'btn btn-secondary px-4 mx-2',
           denyButton: 'btn btn-danger px-4 mx-2',
@@ -142,18 +151,19 @@
     if (typeof Swal !== 'undefined') {
         window.Swal = Swal.mixin(window.taskConfig.swalConfig);
     }
-    // Legacy-Support für bestehende Scripte
+    // Füge Kennung des Benutzers hinzu (falls vorhanden) und Legacy-Support für bestehende Scripte
     var csrfToken = window.taskConfig.csrfToken;
     var currentUser = window.taskConfig.username;
     var userRole = window.taskConfig.role;
+    var userKennung = window.taskConfig.kennung ?? '';
   </script>
 </head>
 <body>
 
   <?php if (isset($_SESSION['task_username']) && $_SESSION['task_username'] === 'test-admin'): ?>
-    <div class="alert alert-warning py-1 mb-0 text-center rounded-0 border-0 small shadow-sm" style="z-index: 2000; position: relative;">
-      <i class="fas fa-vial me-2"></i> <strong>Sandbox-Modus:</strong> Sie arbeiten auf einer Kopie. Änderungen an System-Daten oder anderen Benutzern sind isoliert.
-    </div>
+  <div class="alert alert-warning py-1 mb-0 text-center rounded-0 border-0 small shadow-sm" style="z-index: 2000; position: relative;">
+    <i class="fas fa-vial me-2"></i> <strong>Sandbox-Modus:</strong> Sie arbeiten auf einer Kopie. Änderungen an System-Daten oder anderen Benutzern sind isoliert.
+  </div>
   <?php endif; ?>
 
   <?php include TEMPLATE_PATH . '/header_nav' . TEMPLATE_EXTENSION; ?>
